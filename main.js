@@ -16,7 +16,7 @@ app.use(session({
 }));
 
 // MongoDB Connection
-mongoose.connect("mongodb+srv://joshimayank646:mayank12345@cluster0.cixd9nb.mongodb.net/?retryWrites=true&w=majority");
+mongoose.connect(process.env.MONGO_URL);
 
 // Schema & Model
 const userSchema = new mongoose.Schema({
@@ -124,7 +124,7 @@ app.get("/logout", (req, res) => {
     res.redirect("/");
   });
 });
-
-app.listen(3000, () => {
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
   console.log("Server running at http://localhost:3000");
 });
