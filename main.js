@@ -61,7 +61,7 @@ app.post("/register", async (req, res) => {
         password: password
       });
       await newUser.save();
-      res.redirect("/");
+      res.redirect("/secret");
     }
   } catch (err) {
     console.log("Registration error:", err);
