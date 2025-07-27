@@ -2,7 +2,7 @@
 
 A Node.js and Express-based web application that allows users to register, log in, and anonymously share their secrets securely.
 
-🌐 **Live Demo**: [https://secrets-app-qeji.onrender.com](https://secrets-app-qeji.onrender.com)
+🌐 **Live Demo**: [https://secrets-app-4ssh.onrender.com/)
 
 ---
 
@@ -91,7 +91,7 @@ A Node.js and Express-based web application that allows users to register, log i
 ## ⚠️ Deployment Notes
 
 The app is deployed on Render at:  
-🔗 [https://secrets-app-qeji.onrender.com](https://secrets-app-qeji.onrender.com)
+🔗 [https://secrets-app-4ssh.onrender.com/)
 
 ---
 
