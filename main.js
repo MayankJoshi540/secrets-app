@@ -46,7 +46,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
-  res.render("register");
+  res.render("register", { alertMessage: null });
 });
 
 app.post("/register", async (req, res) => {
@@ -54,7 +54,7 @@ app.post("/register", async (req, res) => {
   try {
     const existingUser = await User.findOne({ email: usermail });
     if (existingUser) {
-      res.send("Existing user. Please login.");
+      return res.render("register", { alertMessage: "User already exists. Please login." });
     } else {
       const newUser = new User({
         name: username,
@@ -62,30 +62,34 @@ app.post("/register", async (req, res) => {
         password: password
       });
       await newUser.save();
-      res.redirect("/secret");
+      res.redirect("/login");
     }
   } catch (err) {
     console.log("Registration error:", err);
-    res.status(500).send("Registration failed.");
+    res.status(500).render("register", { alertMessage: "Registration failed. Please try again." });
   }
 });
 
 app.get("/login", (req, res) => {
-  res.render("login");
+  res.render("login", { alertMessage: null });
 });
 
 app.post("/login", async (req, res) => {
   const { usermail, password } = req.body;
   try {
     const user = await User.findOne({ email: usermail });
-    if (!user) return res.send("User not found");
-    if (user.password !== password) return res.send("Invalid password");
+    if (!user) {
+      return res.render("login", { alertMessage: "User not found" });
+    }
+    if (user.password !== password) {
+      return res.render("login", { alertMessage: "Invalid password" });
+    }
 
     req.session.userId = user._id;
     res.redirect("/secret");
   } catch (err) {
     console.log("Login error:", err);
-    res.status(500).send("Login failed.");
+    res.status(500).render("login", { alertMessage: "Login failed. Please try again." });
   }
 });
 
@@ -102,7 +106,6 @@ app.get("/secret", isAuthenticated, async (req, res) => {
     res.status(500).send("Failed to load secrets.");
   }
 });
-
 
 app.get("/submit", isAuthenticated, (req, res) => {
   res.render("submit");
@@ -125,7 +128,8 @@ app.get("/logout", (req, res) => {
     res.redirect("/");
   });
 });
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Server running at http://localhost:3000");
+  console.log("Server running at http://localhost:" + PORT);
 });
