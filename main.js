@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema({
   name: String,
   email: String,
   password: String,
-  secret: String
+  secret: [String]
 });
 
 const secretKey = "thisislittlesecret";
@@ -32,11 +32,9 @@ userSchema.plugin(encrypt, { secret: secretKey, encryptedFields: ["password"] })
 
 const User = mongoose.model("User", userSchema);
 
-// Middleware to protect routes
+// Middleware
 function isAuthenticated(req, res, next) {
-  if (req.session.userId) {
-    return next();
-  }
+  if (req.session.userId) return next();
   res.redirect("/login");
 }
 
@@ -46,7 +44,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
-  res.render("register", { alertMessage: null });
+  res.render("register");
 });
 
 app.post("/register", async (req, res) => {
@@ -54,7 +52,7 @@ app.post("/register", async (req, res) => {
   try {
     const existingUser = await User.findOne({ email: usermail });
     if (existingUser) {
-      return res.render("register", { alertMessage: "User already exists. Please login." });
+      res.send("Existing user. Please login.");
     } else {
       const newUser = new User({
         name: username,
@@ -62,64 +60,81 @@ app.post("/register", async (req, res) => {
         password: password
       });
       await newUser.save();
-      res.redirect("/login");
+      req.session.userId = newUser._id;
+      res.redirect("/secret");
     }
   } catch (err) {
     console.log("Registration error:", err);
-    res.status(500).render("register", { alertMessage: "Registration failed. Please try again." });
+    res.status(500).send("Registration failed.");
   }
 });
 
 app.get("/login", (req, res) => {
-  res.render("login", { alertMessage: null });
+  res.render("login");
 });
 
 app.post("/login", async (req, res) => {
   const { usermail, password } = req.body;
   try {
     const user = await User.findOne({ email: usermail });
-    if (!user) {
-      return res.render("login", { alertMessage: "User not found" });
-    }
-    if (user.password !== password) {
-      return res.render("login", { alertMessage: "Invalid password" });
-    }
+    if (!user) return res.send("User not found");
+    if (user.password !== password) return res.send("Invalid password");
 
     req.session.userId = user._id;
     res.redirect("/secret");
   } catch (err) {
     console.log("Login error:", err);
-    res.status(500).render("login", { alertMessage: "Login failed. Please try again." });
+    res.status(500).send("Login failed.");
   }
 });
 
 app.get("/secret", isAuthenticated, async (req, res) => {
   try {
-    const users = await User.find({ secret: { $ne: null } });
+    const allUsers = await User.find({ secret: { $exists: true, $not: { $size: 0 } } });
     const currentUser = await User.findById(req.session.userId);
     res.render("secret", {
-      secrets: users,
-      ownSecret: currentUser.secret || null
+      users: allUsers,
+      CurrentUserId: req.session.userId,
+      user: currentUser
     });
   } catch (err) {
-    console.log("Secrets fetch error:", err);
+    console.log("Secret page error:", err);
     res.status(500).send("Failed to load secrets.");
   }
-});
-
-app.get("/submit", isAuthenticated, (req, res) => {
-  res.render("submit");
 });
 
 app.post("/submit", isAuthenticated, async (req, res) => {
   const secret = req.body.secret;
   try {
-    await User.findByIdAndUpdate(req.session.userId, { secret: secret });
+    const user = await User.findById(req.session.userId);
+    user.secret.push(secret);
+    await user.save();
     res.redirect("/secret");
   } catch (err) {
     console.log("Submit error:", err);
     res.status(500).send("Failed to submit secret.");
   }
+});
+
+app.post("/edit", isAuthenticated, async (req, res) => {
+  const { oldSecret, newSecret } = req.body;
+  try {
+    const user = await User.findById(req.session.userId);
+    const index = user.secret.indexOf(oldSecret);
+    if (index > -1) {
+      user.secret[index] = newSecret;
+      await user.save();
+    }
+    res.redirect("/secret");
+  } catch (err) {
+    console.log("Edit error:", err);
+    res.status(500).send("Failed to edit secret.");
+  }
+});
+
+app.post("/icon", isAuthenticated, (req, res) => {
+  const secret = req.body.secret;
+  res.render("edit", { secret }); // If you want to stay on same page, you’ll need a flag here. Not used now.
 });
 
 app.get("/logout", (req, res) => {
@@ -131,5 +146,5 @@ app.get("/logout", (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Server running at http://localhost:" + PORT);
+  console.log("Server running at http://localhost:3000");
 });
