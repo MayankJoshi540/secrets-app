@@ -53,7 +53,7 @@ app.post("/register", async (req, res) => {
     const existingUser = await User.findOne({ email: usermail });
     if (existingUser) {
       res.render("register",{alertMessage : "Existing User Please Login "});
-      res.redirect("/login");
+      // res.redirect("/login");
     } else {
       const newUser = new User({
         name: username,
